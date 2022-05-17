@@ -1,23 +1,39 @@
 {
-  "name": "@cfnboost/spec",
+  "name": "@awboost/cfnspec",
   "version": "0.3.2",
-  "main": "lib/index.js",
-  "type": "module",
-  "author": "Gordon Leigh",
-  "repository": "https://github.com/cfnboost/spec",
-  "license": "MIT",
   "private": false,
   "publishConfig": {
     "access": "public"
   },
+  "type": "module",
+  "author": {
+    "email": "gordonmleigh@gmail.com",
+    "name": "Gordon Leigh"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/awboost/cfnspec.git"
+  },
+  "homepage": "https://github.com/awboost/cfnspec#readme",
+  "license": "MIT",
+  "main": "./lib/cjs/index.js",
+  "module": "./lib/index.js",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": "./lib/index.js"
+  },
   "files": [
-    "src/",
-    "lib/",
-    "!*.test.js"
+    "lib/**/*.js",
+    "lib/**/*.d.ts",
+    "lib/**/*.map",
+    "!lib/**/*.test.*",
+    "src/**/*.ts",
+    "!src/**/*.test.ts"
   ],
   "scripts": {
-    "build": "npm run clean && npm run lint && npm run compile && npm run test",
+    "build": "npm run clean && npm run lint && npm run compile && npm run compile:cjs && npm run test",
     "compile": "tsc",
+    "compile:cjs": "tsc -p tsconfig.cjs.json",
     "clean": "rm -rf lib/ dist/",
     "lint": "eslint src/ --ext=ts,tsx",
     "postversion": "git push --follow-tags",
