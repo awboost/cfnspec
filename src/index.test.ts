@@ -1,4 +1,3 @@
-import { ExtraFields } from '@fmtk/decoders';
 import 'jest';
 import { decodeCloudFormationSpec } from './CloudFormationSpec.js';
 import { DefaultSpecUrl, getLatestSpec } from './getLatestSpec.js';
@@ -6,10 +5,9 @@ import { DefaultSpecUrl, getLatestSpec } from './getLatestSpec.js';
 describe('getLatestSpec', () => {
   it('it validates the current spec without failing', async () => {
     const spec = await getLatestSpec(DefaultSpecUrl, false);
-    const result = decodeCloudFormationSpec(spec, {
-      extraFields: ExtraFields.Reject,
-    });
+    const result = decodeCloudFormationSpec(spec);
 
-    expect(result.ok).toBeTruthy();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((result as any).error).toBeUndefined();
   });
 });
