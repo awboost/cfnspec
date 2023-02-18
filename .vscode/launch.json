@@ -11,8 +11,14 @@
       "program": "${workspaceFolder}/node_modules/jest/bin/jest",
       "args": ["--runInBand"],
       "skipFiles": ["<node_internals>/**", "**/node_modules/**"],
-      "cwd": "${workspaceFolder}",
-      "disableOptimisticBPs": true
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "node",
+      "name": "validate",
+      "request": "launch",
+      "program": "${workspaceFolder}/util/validate.js",
+      "args": ["first"]
     }
   ]
 }

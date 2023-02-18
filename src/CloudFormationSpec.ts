@@ -1,5 +1,7 @@
 import {
   boolean,
+  choose,
+  Decoder,
   enumValue,
   object,
   optional,
@@ -8,77 +10,172 @@ import {
   text,
 } from '@fmtk/decoders';
 
-export enum PrimitiveType {
-  String = 'String',
-  Long = 'Long',
-  Integer = 'Integer',
-  Double = 'Double',
-  Boolean = 'Boolean',
-  Timestamp = 'Timestamp',
-  Json = 'Json',
+type ValueOf<T> = T[keyof T];
+
+export const SpecialType = {
+  List: 'List',
+  Map: 'Map',
+} as const;
+export type SpecialType = ValueOf<typeof SpecialType>;
+
+export const PrimitiveType = {
+  String: 'String',
+  Long: 'Long',
+  Integer: 'Integer',
+  Double: 'Double',
+  Boolean: 'Boolean',
+  Timestamp: 'Timestamp',
+  Json: 'Json',
+};
+export type PrimitiveType = ValueOf<typeof PrimitiveType>;
+
+export const UpdateType = {
+  Mutable: 'Mutable',
+  Immutable: 'Immutable',
+  Conditional: 'Conditional',
+} as const;
+export type UpdateType = ValueOf<typeof UpdateType>;
+
+export interface NonPrimitiveTypeAlias {
+  Type: string;
 }
 
-export enum UpdateType {
-  Mutable = 'Mutable',
-  Immutable = 'Immutable',
-  Conditional = 'Conditional',
+export interface PrimitiveTypeAlias {
+  PrimitiveType: PrimitiveType;
 }
 
-export interface Dictionary<T> {
-  [key: string]: T;
-}
-
-export interface TypeDefinition {
-  AdditionalProperties?: boolean;
-  Documentation?: string;
+export interface PrimitiveSpecialTypeAlias {
   DuplicatesAllowed?: boolean;
-  ItemType?: string;
-  PrimitiveItemType?: PrimitiveType;
-  PrimitiveType?: PrimitiveType;
-  Properties?: Dictionary<TypeDefinition>;
+  Type: SpecialType;
+  PrimitiveItemType: PrimitiveType;
+}
+
+export interface NonPrimitiveSpecialTypeAlias {
+  DuplicatesAllowed?: boolean;
+  Type: SpecialType;
+  ItemType: string;
+}
+
+export type TypeAlias =
+  | NonPrimitiveSpecialTypeAlias
+  | NonPrimitiveTypeAlias
+  | PrimitiveSpecialTypeAlias
+  | PrimitiveTypeAlias;
+
+export interface TypeMetaInfo {
+  Documentation?: string;
   Required?: boolean;
-  Type?: string;
   UpdateType?: UpdateType;
 }
 
-export interface ResourceDefinition extends TypeDefinition {
-  Attributes?: Dictionary<TypeDefinition>;
+export type SubPropertyType = TypeAlias & TypeMetaInfo;
+
+export interface ObjectTypeDef extends TypeMetaInfo {
+  Properties: Record<string, SubPropertyType>;
 }
 
+export type TypeDef = SubPropertyType | ObjectTypeDef;
+
+export interface ResourceType {
+  AdditionalProperties?: boolean;
+  Attributes?: Record<string, TypeAlias>;
+  Documentation?: string;
+  Properties: Record<string, PropertyType>;
+}
+
+export type PropertyType = {
+  Documentation?: string;
+  Required?: boolean;
+  UpdateType?: UpdateType;
+} & (TypeAlias | ObjectTypeDef);
+
 export interface CloudFormationSpec {
-  PropertyTypes: Dictionary<TypeDefinition>;
+  PropertyTypes: Record<string, PropertyType>;
   ResourceSpecificationVersion: string;
-  ResourceTypes: Dictionary<ResourceDefinition>;
+  ResourceTypes: Record<string, ResourceType>;
 }
 
 export const decodePrimitiveType = enumValue(PrimitiveType);
+export const decodeSpecialType = enumValue(SpecialType);
 export const decodeUpdateType = enumValue(UpdateType);
 
-const typeDefinitionModel = {
-  AdditionalProperties: optional(boolean),
-  Documentation: optional(string),
-  DuplicatesAllowed: optional(boolean),
-  ItemType: optional(string),
-  PrimitiveItemType: optional(decodePrimitiveType),
-  PrimitiveType: optional(decodePrimitiveType),
-  Required: optional(boolean),
-  Type: optional(string),
-  UpdateType: optional(decodeUpdateType),
-};
+export const decodeSubPropertyType: Decoder<SubPropertyType> = choose(
+  object({
+    Documentation: optional(string),
+    Required: optional(boolean),
+    Type: string,
+    UpdateType: optional(decodeUpdateType),
+  }),
+  object({
+    Documentation: optional(string),
+    DuplicatesAllowed: optional(boolean),
+    ItemType: string,
+    Required: optional(boolean),
+    Type: decodeSpecialType,
+    UpdateType: optional(decodeUpdateType),
+  }),
+  object({
+    Documentation: optional(string),
+    DuplicatesAllowed: optional(boolean),
+    PrimitiveItemType: string,
+    Required: optional(boolean),
+    Type: decodeSpecialType,
+    UpdateType: optional(decodeUpdateType),
+  }),
+  object({
+    Documentation: optional(string),
+    PrimitiveType: string,
+    Required: optional(boolean),
+    UpdateType: optional(decodeUpdateType),
+  }),
+);
 
-export const decodeTypeDefinition = object<TypeDefinition>({
-  ...typeDefinitionModel,
-  Properties: optional(record(text, object(typeDefinitionModel))),
+export const decodePrimitiveTypeAlias = object<PrimitiveTypeAlias>({
+  PrimitiveType: decodePrimitiveType,
 });
 
-export const decodeResourceDefinition = object<ResourceDefinition>({
-  ...typeDefinitionModel,
-  Attributes: optional(record(text, object(typeDefinitionModel))),
-  Properties: optional(record(text, object(typeDefinitionModel))),
+export const decodePrimitiveSpecialTypeAlias =
+  object<PrimitiveSpecialTypeAlias>({
+    DuplicatesAllowed: optional(boolean),
+    PrimitiveItemType: decodePrimitiveType,
+    Type: decodeSpecialType,
+  });
+
+export const decodeNonPrimitiveSpecialTypeAlias =
+  object<NonPrimitiveSpecialTypeAlias>({
+    DuplicatesAllowed: optional(boolean),
+    ItemType: string,
+    Type: decodeSpecialType,
+  });
+
+export const decodeTypeAlias: Decoder<TypeAlias> = choose(
+  decodePrimitiveTypeAlias,
+  decodeNonPrimitiveSpecialTypeAlias,
+  decodePrimitiveSpecialTypeAlias,
+  decodePrimitiveTypeAlias,
+);
+
+export const decodeObjectTypeDef: Decoder<ObjectTypeDef> = object({
+  Documentation: optional(string),
+  Properties: record(string, decodeSubPropertyType),
+  Required: optional(boolean),
+  UpdateType: optional(decodeUpdateType),
+});
+
+export const decodePropertyType = choose(
+  decodeObjectTypeDef,
+  decodeSubPropertyType,
+);
+
+export const decodeResourceType = object<ResourceType>({
+  AdditionalProperties: optional(boolean),
+  Attributes: optional(record(text, decodeSubPropertyType)),
+  Documentation: optional(string),
+  Properties: record(string, decodeSubPropertyType),
 });
 
 export const decodeCloudFormationSpec = object<CloudFormationSpec>({
-  PropertyTypes: record(text, decodeTypeDefinition),
+  PropertyTypes: record(text, decodePropertyType),
   ResourceSpecificationVersion: string,
-  ResourceTypes: record(text, decodeResourceDefinition),
+  ResourceTypes: record(text, decodeResourceType),
 });
