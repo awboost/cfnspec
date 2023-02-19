@@ -12,6 +12,7 @@
     "project": "tsconfig.json"
   },
   "rules": {
+    "@typescript-eslint/no-explicit-any": "off",
     "@typescript-eslint/no-use-before-define": ["warn", { "functions": false }],
     "@typescript-eslint/no-floating-promises": "error",
     "@typescript-eslint/no-misused-promises": "error",

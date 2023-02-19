@@ -162,7 +162,7 @@ export const decodeObjectTypeDef: Decoder<ObjectTypeDef> = object({
   UpdateType: optional(decodeUpdateType),
 });
 
-export const decodePropertyType = choose(
+export const decodePropertyType: Decoder<PropertyType> = choose(
   decodeObjectTypeDef,
   decodeSubPropertyType,
 );
@@ -179,3 +179,35 @@ export const decodeCloudFormationSpec = object<CloudFormationSpec>({
   ResourceSpecificationVersion: string,
   ResourceTypes: record(text, decodeResourceType),
 });
+
+export function isSpecialType(type: string): type is SpecialType {
+  return Object.values(SpecialType).includes(type as any);
+}
+
+export function isNonPrimitiveSpecialTypeAlias(
+  def: TypeAlias,
+): def is NonPrimitiveSpecialTypeAlias {
+  return 'Type' in def && isSpecialType(def.Type) && 'ItemType' in def;
+}
+
+export function isNonPrimitiveTypeAlias(
+  def: TypeAlias,
+): def is NonPrimitiveTypeAlias {
+  return 'Type' in def && !isSpecialType(def.Type);
+}
+
+export function isPrimitiveSpecialTypeAlias(
+  def: TypeAlias,
+): def is PrimitiveSpecialTypeAlias {
+  return 'Type' in def && isSpecialType(def.Type) && 'PrimtiveItemType' in def;
+}
+
+export function isPrimitiveTypeAlias(
+  def: TypeAlias,
+): def is PrimitiveTypeAlias {
+  return 'PrimitiveType' in def;
+}
+
+export function isObjectPropertyType(def: PropertyType): def is ObjectTypeDef {
+  return 'Properties' in def;
+}
