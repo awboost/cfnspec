@@ -80,7 +80,7 @@ export interface ResourceType {
   AdditionalProperties?: boolean;
   Attributes?: Record<string, TypeAlias>;
   Documentation?: string;
-  Properties: Record<string, PropertyType>;
+  Properties: Record<string, SubPropertyType>;
 }
 
 export type PropertyType = {
